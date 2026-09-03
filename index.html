@@ -1,0 +1,3086 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SHADOWFALL — The Lost Realm</title>
+
+<style>
+*{box-sizing:border-box}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#05070c;font-family:Georgia,"Times New Roman",serif;color:#f4eee2}
+canvas{display:block}
+
+body:after{content:"";position:fixed;inset:0;pointer-events:none;background:radial-gradient(ellipse at center,transparent 45%,rgba(0,0,0,.48) 100%);z-index:2}
+
+#hud{
+ position:fixed;inset:0;pointer-events:none;
+ text-shadow:0 2px 5px #000,0 0 16px rgba(0,0,0,.7);
+ z-index:3;
+}
+
+#top{
+ position:absolute;
+ top:15px;
+ left:50%;
+ transform:translateX(-50%);
+ text-align:center;
+}
+
+#zone{
+ font-size:clamp(18px,2.2vw,29px);
+ font-weight:bold;
+ letter-spacing:2px;
+}
+
+#stats{
+ margin-top:4px;
+ color:#d8d0c4;
+ font-size:13px;
+ letter-spacing:.5px;
+}
+
+#bars{
+ position:absolute;
+ left:20px;
+ bottom:20px;
+ width:270px;
+}
+
+.bar{
+ height:19px;
+ background:rgba(9,12,15,.8);
+ border:1px solid rgba(214,198,164,.45);
+ border-radius:2px;
+ margin-top:8px;
+ overflow:hidden;
+}
+
+.fill{height:100%;transition:.15s;box-shadow:inset 0 1px 0 rgba(255,255,255,.35)}
+#hp{background:linear-gradient(90deg,#8d1f28,#e45a47)}
+#energy{background:linear-gradient(90deg,#147d92,#58d9d0)}
+#stamina{background:linear-gradient(90deg,#4f812d,#b4d96e)}
+.barlabel{
+ position:absolute;
+ width:270px;
+ text-align:center;
+ font-size:11px;
+ margin-top:2px;
+ font-weight:bold;
+}
+
+#abilities{
+ position:absolute;
+ bottom:18px;
+ left:50%;
+ transform:translateX(-50%);
+ display:flex;
+ gap:7px;
+}
+
+.ability{
+ width:88px;
+ height:65px;
+ background:rgba(11,14,18,.86);
+ border:1px solid rgba(214,198,164,.3);
+ border-radius:3px;
+ text-align:center;
+ padding:5px;
+}
+
+.ability.active{
+ border-color:#e9c97c;
+ box-shadow:0 0 18px rgba(233,201,124,.25),inset 0 0 14px rgba(233,201,124,.08);
+}
+
+.ability .key{
+ font-size:17px;
+ font-weight:bold;
+}
+
+.ability .name{
+ font-size:10px;
+ margin-top:4px;
+}
+
+.ability .cost{
+ color:#aaa;
+ font-size:9px;
+ margin-top:3px;
+}
+
+#crosshair{
+ position:absolute;
+ left:50%;
+ top:50%;
+ transform:translate(-50%,-50%);
+ width:20px;height:20px;
+}
+
+#crosshair:before,#crosshair:after{
+ content:"";
+ position:absolute;
+ background:white;
+ box-shadow:0 0 4px black;
+}
+
+#crosshair.hit:before,#crosshair.hit:after{
+ background:#ffdf78;
+ box-shadow:0 0 8px #ff6b3d;
+}
+
+#crosshair:before{width:20px;height:2px;top:9px}
+#crosshair:after{height:20px;width:2px;left:9px}
+
+#message{
+ position:absolute;
+ top:58%;
+ left:50%;
+ transform:translateX(-50%);
+ font-size:23px;
+ font-weight:bold;
+}
+
+#interaction{
+ position:absolute;
+ bottom:110px;
+ left:50%;
+ transform:translateX(-50%);
+ font-size:17px;
+ font-weight:bold;
+}
+
+#quest{
+ position:absolute;
+ top:90px;
+ right:20px;
+ width:250px;
+ background:rgba(7,10,15,.78);
+ border-left:3px solid #c99c55;
+ border-top:1px solid rgba(255,255,255,.12);
+ padding:12px;
+}
+
+#quest h3{margin:0 0 8px}
+#questText{font-size:13px;color:#ddd}
+
+#minimap{
+ position:absolute;
+ top:20px;
+ right:20px;
+ width:180px;
+ height:180px;
+ border:2px solid #aaa;
+ border-radius:50%;
+ background:rgba(5,8,12,.75);
+}
+
+#bossbar{
+ display:none;
+ position:absolute;
+ top:115px;
+ left:50%;
+ transform:translateX(-50%);
+ width:500px;
+ text-align:center;
+}
+
+#bossName{
+ font-size:20px;
+ font-weight:bold;
+}
+
+#bossFill{
+ height:18px;
+ background:#d43cff;
+ border:2px solid white;
+}
+
+#shop,#inventory,#start,#gameover{
+ position:fixed;
+ inset:0;
+ z-index:20;
+ display:none;
+ align-items:center;
+ justify-content:center;
+ background:rgba(2,4,8,.92);
+}
+
+.panel{
+ width:min(700px,90vw);
+ max-height:calc(100vh - 24px);
+ overflow-y:auto;
+ background:linear-gradient(145deg,rgba(32,35,36,.97),rgba(8,11,13,.98));
+ border:1px solid rgba(214,198,164,.5);
+ border-radius:4px;
+ padding:30px;
+ text-align:center;
+ box-shadow:0 0 80px #000;
+}
+
+h1{font-size:clamp(36px,6vw,64px);letter-spacing:6px;margin:0 0 8px;color:#e7c982;text-shadow:0 3px 18px #000}
+h2{margin-top:0}
+
+button{
+ background:#d7b66f;
+ color:#17130d;
+ border:0;
+ border-radius:2px;
+ padding:12px 25px;
+ font-weight:bold;
+ cursor:pointer;
+}
+
+button:hover{transform:scale(1.04)}
+
+.shopgrid{
+ display:grid;
+ grid-template-columns:repeat(3,1fr);
+ gap:10px;
+ margin:20px 0;
+}
+
+.shopitem{
+ border:1px solid #444;
+ border-radius:8px;
+ padding:15px;
+ background:#121722;
+ cursor:pointer;
+}
+
+.shopitem:hover{border-color:white}
+
+#inventoryItems{
+ display:grid;
+ grid-template-columns:repeat(4,1fr);
+ gap:8px;
+}
+
+.inv{
+ padding:15px;
+ background:#151b25;
+ border:1px solid #444;
+ border-radius:8px;
+}
+
+#multiplayer{
+ margin:22px auto 0;
+ max-width:520px;
+ padding-top:18px;
+ border-top:1px solid rgba(214,198,164,.25);
+}
+
+#multiplayer h3{margin:0 0 8px;color:#e7c982}
+#multiplayer p{font-size:12px;color:#aaa;margin:6px 0 12px}
+.multiplayer-row{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+#multiplayer input{
+ width:150px;
+ padding:11px;
+ border:1px solid #555;
+ background:#0e141c;
+ color:#fff;
+ border-radius:2px;
+}
+#multiplayer button{padding:11px 15px}
+#roomStatus{min-height:18px;color:#8ee8dc;font-size:12px;margin-top:10px}
+#playersOnline{
+ position:absolute;
+ top:20px;
+ left:20px;
+ padding:8px 11px;
+ background:rgba(7,10,15,.78);
+ border-left:3px solid #58d9d0;
+ font-size:12px;
+}
+</style>
+</head>
+
+<body>
+
+<div id="start" style="display:flex">
+ <div class="panel">
+  <h1>SHADOWFALL</h1>
+  <h2>THE LOST REALM</h2>
+  <p>
+   Een gigantische mysterieuze wereld vol monsters,
+   ruïnes, dorpen, loot en verborgen geheimen.
+  </p>
+
+  <p style="color:#aaa">
+   WASD bewegen · SHIFT sprint · Muis kijken<br>
+   Linkermuisknop vasthouden = ability<br>
+   1-8 abilities · E interactie · B shop · I inventory
+  </p>
+
+   <div id="multiplayer">
+    <h3>CO-OP VILLAGE</h3>
+   <p>Gebruik op twee apparaten dezelfde room-code. Een speler host, de ander joint.</p>
+    <div class="multiplayer-row">
+      <input id="playerName" maxlength="16" placeholder="Jouw naam" value="Hunter">
+      <input id="roomCode" maxlength="12" placeholder="Room-code" value="VILLAGE">
+      <button id="hostButton">HOST MAKEN</button>
+      <button id="joinButton">JOINEN</button>
+    </div>
+   <div id="roomStatus">Klaar voor online co-op</div>
+   </div>
+
+  <button id="startButton">START GAME</button>
+ </div>
+</div>
+
+<div id="gameover">
+ <div class="panel">
+  <h1>YOU DIED</h1>
+  <p id="final"></p>
+  <button onclick="location.reload()">OPNIEUW</button>
+ </div>
+</div>
+
+<div id="shop">
+ <div class="panel">
+  <h2>ITEM SHOP</h2>
+  <p>Coins: <b id="shopCoins"></b></p>
+  <div class="shopgrid" id="shopGrid"></div>
+  <button id="closeShop">SLUITEN</button>
+ </div>
+</div>
+
+<div id="inventory">
+ <div class="panel">
+  <h2>INVENTORY</h2>
+  <p>Level <b id="invLevel"></b> · XP <b id="invXP"></b></p>
+  <div id="inventoryItems"></div>
+  <br>
+  <button id="closeInventory">SLUITEN</button>
+ </div>
+</div>
+
+<div id="hud">
+
+ <div id="top">
+  <div id="zone">CENTRAL VILLAGE</div>
+  <div id="stats"></div>
+ </div>
+
+ <div id="playersOnline">Spelers: 1</div>
+
+ <canvas id="minimap" width="180" height="180"></canvas>
+
+ <div id="quest">
+  <h3>QUEST</h3>
+  <div id="questText"></div>
+ </div>
+
+ <div id="bossbar">
+  <div id="bossName">BOSS</div>
+  <div class="bar">
+   <div id="bossFill"></div>
+  </div>
+ </div>
+
+ <div id="crosshair"></div>
+ <div id="message"></div>
+ <div id="interaction"></div>
+
+ <div id="bars">
+
+  <div class="barlabel">HP</div>
+  <div class="bar">
+   <div id="hp" class="fill"></div>
+  </div>
+
+  <div class="barlabel">ENERGY</div>
+  <div class="bar">
+   <div id="energy" class="fill"></div>
+  </div>
+
+  <div class="barlabel">STAMINA</div>
+  <div class="bar">
+   <div id="stamina" class="fill"></div>
+  </div>
+
+ </div>
+
+ <div id="abilities"></div>
+
+</div>
+
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<script type="module">
+
+import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js";
+
+/* =========================================================
+   ENGINE
+========================================================= */
+
+const scene=new THREE.Scene();
+
+scene.background=new THREE.Color(0x07101a);
+
+scene.fog=new THREE.Fog(
+ 0x07101a,
+ 90,
+ 500
+);
+
+const camera=new THREE.PerspectiveCamera(
+ 75,
+ innerWidth/innerHeight,
+ .05,
+ 1000
+);
+
+camera.position.set(0,1.7,20);
+
+const renderer=new THREE.WebGLRenderer({
+ antialias:true
+});
+
+renderer.setSize(innerWidth,innerHeight);
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+renderer.outputColorSpace=THREE.SRGBColorSpace;
+renderer.toneMapping=THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure=1.08;
+renderer.shadowMap.enabled=true;
+renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+
+document.body.appendChild(renderer.domElement);
+
+const clock=new THREE.Clock();
+
+const hemi=new THREE.HemisphereLight(
+ 0x91b7df,
+ 0x16100d,
+ 1.6
+);
+
+scene.add(hemi);
+
+const sun=new THREE.DirectionalLight(
+ 0xbfd6ff,
+ 2.2
+);
+
+sun.position.set(-100,160,80);
+sun.castShadow=true;
+
+sun.shadow.mapSize.set(2048,2048);
+
+sun.shadow.camera.left=-350;
+sun.shadow.camera.right=350;
+sun.shadow.camera.top=350;
+sun.shadow.camera.bottom=-350;
+
+scene.add(sun);
+
+const world=new THREE.Group();
+scene.add(world);
+
+/* =========================================================
+   GAME STATE
+========================================================= */
+
+let running=false;
+
+let hp=100;
+let energy=100;
+let stamina=100;
+
+let level=1;
+let xp=0;
+let score=0;
+let coins=Number(localStorage.getItem("sfCoins")||0);
+
+let wave=1;
+
+let yaw=0;
+let pitch=0;
+
+let shooting=false;
+
+let selected=0;
+let lastShot=0;
+
+let dayTime=0;
+
+const keys={};
+
+const enemies=[];
+const projectiles=[];
+const particles=[];
+const chests=[];
+const npcs=[];
+const zones=[];
+const buildings=[];
+const fireflies=[];
+const remotePlayers=new Map();
+
+let playerId=crypto.randomUUID?.()||Math.random().toString(36).slice(2);
+let playerName="Hunter";
+let roomCode="";
+let peer=null;
+const connections=new Map();
+let networkTimer=0;
+
+let questKills=0;
+let questComplete=false;
+
+const inventory={
+ potions:2,
+ crystals:0,
+ relics:0
+};
+
+/* =========================================================
+   ABILITIES
+========================================================= */
+
+const abilities=[
+
+ {
+  name:"PULSE",
+  damage:40,
+  cost:5,
+  cooldown:.16,
+  speed:70,
+  color:0x27e8ff
+ },
+
+ {
+  name:"METEOR",
+  damage:180,
+  cost:22,
+  cooldown:1.15,
+  speed:30,
+  color:0xff6a29
+ },
+
+ {
+  name:"FROST",
+  damage:25,
+  cost:3,
+  cooldown:.08,
+  speed:80,
+  color:0x9dfcff
+ },
+
+ {
+  name:"VOID",
+  damage:55,
+  cost:16,
+  cooldown:.6,
+  speed:40,
+  color:0xa855ff
+ },
+
+ {
+  name:"NOVA",
+  damage:120,
+  cost:30,
+  cooldown:1.4,
+  speed:22,
+  color:0xff43d5
+ },
+
+ {
+  name:"BLADES",
+  damage:30,
+  cost:11,
+  cooldown:.48,
+  speed:62,
+  color:0xffe85a
+ },
+
+ {
+  name:"LIGHTNING",
+  damage:95,
+  cost:18,
+  cooldown:.8,
+  speed:90,
+  color:0xffff7a
+ },
+
+ {
+  name:"VOID BEAM",
+  damage:12,
+  cost:4,
+  cooldown:.05,
+  speed:100,
+  color:0xd26aff
+ }
+
+];
+
+/* =========================================================
+   MATERIALS
+========================================================= */
+
+function createGroundTexture(){
+ const canvas=document.createElement("canvas");
+ canvas.width=256;
+ canvas.height=256;
+ const context=canvas.getContext("2d");
+ const image=context.createImageData(256,256);
+
+ for(let i=0;i<image.data.length;i+=4){
+  const shade=27+Math.floor(Math.random()*19);
+  image.data[i]=shade-5;
+  image.data[i+1]=shade+8;
+  image.data[i+2]=shade-2;
+  image.data[i+3]=255;
+ }
+
+ context.putImageData(image,0,0);
+ const texture=new THREE.CanvasTexture(canvas);
+ texture.wrapS=THREE.RepeatWrapping;
+ texture.wrapT=THREE.RepeatWrapping;
+ texture.repeat.set(18,18);
+ texture.colorSpace=THREE.SRGBColorSpace;
+ return texture;
+}
+
+const groundMat=new THREE.MeshStandardMaterial({
+ color:0x26332b,
+ map:createGroundTexture(),
+ roughness:1,
+ metalness:0
+});
+
+const roadMat=new THREE.MeshStandardMaterial({
+ color:0x3c3934,
+ roughness:1
+});
+
+const woodMat=new THREE.MeshStandardMaterial({
+ color:0x4b3628,
+ roughness:.9
+});
+
+const stoneMat=new THREE.MeshStandardMaterial({
+ color:0x555b62,
+ roughness:1
+});
+
+/* =========================================================
+   WORLD
+========================================================= */
+
+const groundGeometry=new THREE.PlaneGeometry(900,900,90,90);
+const groundPositions=groundGeometry.attributes.position;
+
+for(let i=0;i<groundPositions.count;i++){
+ const x=groundPositions.getX(i);
+ const z=groundPositions.getY(i);
+ const height=Math.sin(x*.045)*.22+Math.cos(z*.035)*.18+Math.sin((x+z)*.018)*.28;
+ groundPositions.setZ(i,height);
+}
+
+groundGeometry.computeVertexNormals();
+
+const ground=new THREE.Mesh(groundGeometry,groundMat);
+
+ground.rotation.x=-Math.PI/2;
+ground.receiveShadow=true;
+
+world.add(ground);
+
+function cube(
+ x,y,z,
+ sx,sy,sz,
+ material
+){
+
+ const m=new THREE.Mesh(
+  new THREE.BoxGeometry(sx,sy,sz),
+  material
+ );
+
+ m.position.set(x,y,z);
+ m.castShadow=true;
+ m.receiveShadow=true;
+
+ world.add(m);
+
+ return m;
+}
+
+/* roads */
+
+cube(0,.02,0,22,.05,900,roadMat);
+cube(0,.02,0,900,.05,22,roadMat);
+cube(-180,.02,0,12,.05,900,roadMat);
+cube(180,.02,0,12,.05,900,roadMat);
+cube(0,.02,-180,900,.05,12,roadMat);
+cube(0,.02,180,900,.05,12,roadMat);
+
+/* =========================================================
+   HOUSES
+========================================================= */
+
+function house(x,z,s=1){
+
+ const g=new THREE.Group();
+
+ const body=new THREE.Mesh(
+  new THREE.BoxGeometry(10*s,7*s,9*s),
+  woodMat
+ );
+
+ body.position.y=3.5*s;
+ body.castShadow=true;
+ g.add(body);
+
+ const roof=new THREE.Mesh(
+  new THREE.ConeGeometry(7.8*s,5*s,4),
+  new THREE.MeshStandardMaterial({
+   color:0x292c35,
+   roughness:.9
+  })
+ );
+
+ roof.rotation.y=Math.PI/4;
+ roof.position.y=9*s;
+ roof.castShadow=true;
+
+ g.add(roof);
+
+ const door=new THREE.Mesh(
+  new THREE.BoxGeometry(2*s,4*s,.2),
+  new THREE.MeshStandardMaterial({
+   color:0x16120e
+  })
+ );
+
+ door.position.set(0,2*s,4.55*s);
+ g.add(door);
+
+ const chimney=new THREE.Mesh(
+  new THREE.BoxGeometry(1.2*s,2.8*s,1.2*s),
+  stoneMat
+ );
+ chimney.position.set(2.5*s,10*s,-1.5*s);
+ chimney.castShadow=true;
+ g.add(chimney);
+
+ const beamMat=new THREE.MeshStandardMaterial({color:0x241a16,roughness:.9});
+ for(const side of [-1,1]){
+  const beam=new THREE.Mesh(new THREE.BoxGeometry(.35*s,7.2*s,.35*s),beamMat);
+  beam.position.set(side*4.65*s,3.6*s,0);
+  g.add(beam);
+ }
+
+ for(const side of [-1,1]){
+
+  const win=new THREE.Mesh(
+   new THREE.BoxGeometry(1.6*s,1.4*s,.2),
+   new THREE.MeshStandardMaterial({
+    color:0x79d9ff,
+    emissive:0x16465d,
+    emissiveIntensity:1.5
+   })
+  );
+
+  win.position.set(
+   side*2.5*s,
+   4*s,
+   4.6*s
+  );
+
+  g.add(win);
+ }
+
+ g.position.set(x,0,z);
+
+ world.add(g);
+ buildings.push(g);
+}
+
+/* villages */
+
+const homes=[
+
+ [-35,-35,1],
+ [-55,-30,.8],
+ [-75,-45,1],
+ [-35,-60,.9],
+
+ [35,-35,1],
+ [60,-35,.8],
+ [80,-50,1],
+ [35,-65,.9],
+
+ [-35,35,1],
+ [-60,40,.9],
+ [-80,55,1],
+
+ [35,35,1],
+ [60,45,.9],
+ [80,55,1],
+
+ [-160,-70,1],
+ [-185,-90,.8],
+
+ [160,70,1],
+ [185,90,.8],
+
+ [-150,160,1],
+ [150,-160,1]
+
+];
+
+homes.forEach(x=>house(...x));
+
+/* =========================================================
+   TREES
+========================================================= */
+
+function tree(x,z,s=1){
+
+ const g=new THREE.Group();
+
+ const trunk=new THREE.Mesh(
+  new THREE.CylinderGeometry(
+   .7*s,
+   1*s,
+   7*s,
+   7
+  ),
+  woodMat
+ );
+
+ trunk.position.y=3.5*s;
+ trunk.castShadow=true;
+
+ g.add(trunk);
+
+ const leaves=new THREE.MeshStandardMaterial({
+  color:0x153b2b,
+  roughness:1
+ });
+
+ for(let i=0;i<3;i++){
+
+  const crown=new THREE.Mesh(
+   new THREE.ConeGeometry(
+    (4.5-i*.6)*s,
+    6*s,
+    8
+   ),
+   leaves
+  );
+
+  crown.position.y=(7+i*2.8)*s;
+  crown.castShadow=true;
+
+  g.add(crown);
+ }
+
+ g.position.set(x,0,z);
+
+ world.add(g);
+}
+
+let seed=923;
+
+function rand(){
+
+ seed=(seed*1664525+1013904223)%4294967296;
+
+ return seed/4294967296;
+}
+
+const starGeometry=new THREE.BufferGeometry();
+const starPositions=[];
+
+for(let i=0;i<700;i++){
+ starPositions.push(
+  (rand()-.5)*850,
+  90+rand()*230,
+  (rand()-.5)*850
+ );
+}
+
+starGeometry.setAttribute(
+ "position",
+ new THREE.Float32BufferAttribute(starPositions,3)
+);
+
+const stars=new THREE.Points(
+ starGeometry,
+ new THREE.PointsMaterial({color:0xdce8ff,size:1.1,sizeAttenuation:true,transparent:true,opacity:.8})
+);
+
+scene.add(stars);
+
+for(let i=0;i<500;i++){
+
+ const x=(rand()-.5)*850;
+ const z=(rand()-.5)*850;
+
+ if(Math.abs(x)<125 && Math.abs(z)<125)
+  continue;
+
+ if(Math.abs(x)<13 || Math.abs(z)<13)
+  continue;
+
+ tree(
+  x,
+  z,
+  .65+rand()*1.2
+ );
+}
+
+function createFireflies(){
+ const glowMaterial=new THREE.MeshBasicMaterial({color:0xffe88a});
+ for(let i=0;i<90;i++){
+  const glow=new THREE.Mesh(new THREE.SphereGeometry(.08,6,6),glowMaterial);
+  glow.position.set((rand()-.5)*220,1.5+rand()*5,(rand()-.5)*220);
+  glow.userData={phase:rand()*Math.PI*2,speed:.7+rand()*.8,baseY:glow.position.y};
+  world.add(glow);
+  fireflies.push(glow);
+ }
+}
+
+createFireflies();
+
+/* =========================================================
+   RUINS
+========================================================= */
+
+function ruins(x,z){
+
+ const g=new THREE.Group();
+
+ for(let i=0;i<12;i++){
+
+  const h=3+rand()*9;
+
+  const b=new THREE.Mesh(
+   new THREE.BoxGeometry(
+    3+rand()*2,
+    h,
+    3+rand()*2
+   ),
+   stoneMat
+  );
+
+  const a=i/12*Math.PI*2;
+
+  b.position.set(
+   Math.cos(a)*15,
+   h/2,
+   Math.sin(a)*15
+  );
+
+  b.rotation.y=rand()*Math.PI;
+  b.castShadow=true;
+
+  g.add(b);
+ }
+
+ const core=new THREE.Mesh(
+  new THREE.CylinderGeometry(3,3,1,8),
+  new THREE.MeshStandardMaterial({
+   color:0x633c78,
+   emissive:0x42175d,
+   emissiveIntensity:2
+  })
+ );
+
+ core.position.y=.5;
+ g.add(core);
+
+ g.position.set(x,0,z);
+
+ world.add(g);
+}
+
+ruins(-260,-210);
+ruins(260,220);
+ruins(-260,220);
+ruins(260,-220);
+
+/* =========================================================
+   CAMPFIRES
+========================================================= */
+
+function campfire(x,z){
+
+ const g=new THREE.Group();
+
+ const stone=new THREE.Mesh(
+  new THREE.CylinderGeometry(2,2,.8,8),
+  stoneMat
+ );
+
+ stone.position.y=.4;
+ g.add(stone);
+
+ const flame=new THREE.Mesh(
+  new THREE.IcosahedronGeometry(1.4,1),
+  new THREE.MeshStandardMaterial({
+   color:0xff8833,
+   emissive:0xff3500,
+   emissiveIntensity:4
+  })
+ );
+
+ flame.position.y=2;
+ g.add(flame);
+
+ const light=new THREE.PointLight(
+  0xff7733,
+  5,
+  28
+ );
+
+ light.position.y=3;
+ g.add(light);
+
+ g.position.set(x,0,z);
+
+ world.add(g);
+}
+
+campfire(-100,-100);
+campfire(100,-100);
+campfire(-100,100);
+campfire(100,100);
+
+function villageSign(){
+ const postMat=new THREE.MeshStandardMaterial({color:0x4b3020,roughness:.9});
+ const post=cube(0,2.2,-13,.45,4.4,.45,postMat);
+ const board=cube(0,3.7,-13,5.8,1.8,.25,woodMat);
+ const signCanvas=document.createElement("canvas");
+ signCanvas.width=512;
+ signCanvas.height=128;
+ const signContext=signCanvas.getContext("2d");
+ signContext.fillStyle="#362218";
+ signContext.fillRect(0,0,512,128);
+ signContext.strokeStyle="#d7b66f";
+ signContext.lineWidth=8;
+ signContext.strokeRect(8,8,496,112);
+ signContext.fillStyle="#f1d18b";
+ signContext.font="bold 42px Georgia";
+ signContext.textAlign="center";
+ signContext.fillText("SHADOWFALL",256,78);
+ const sign=new THREE.Mesh(new THREE.PlaneGeometry(5.5,1.35),new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(signCanvas)}));
+ sign.position.set(0,3.7,-13.14);
+ world.add(sign);
+}
+
+villageSign();
+
+/* =========================================================
+   CHESTS
+========================================================= */
+
+function chest(x,z){
+
+ const g=new THREE.Group();
+
+ const body=new THREE.Mesh(
+  new THREE.BoxGeometry(3,1.7,2.2),
+  new THREE.MeshStandardMaterial({
+   color:0x70451c,
+   roughness:.8
+  })
+ );
+
+ body.position.y=.9;
+ body.castShadow=true;
+
+ g.add(body);
+
+ const metal=new THREE.Mesh(
+  new THREE.BoxGeometry(3.2,.22,2.3),
+  new THREE.MeshStandardMaterial({
+   color:0xd9a52d,
+   metalness:.7
+  })
+ );
+
+ metal.position.y=1.7;
+ g.add(metal);
+
+ const glow=new THREE.PointLight(
+  0xffd24d,
+  1.5,
+  10
+ );
+
+ glow.position.y=2;
+ g.add(glow);
+
+ g.position.set(x,0,z);
+
+ world.add(g);
+
+ chests.push({
+  mesh:g,
+  opened:false
+ });
+}
+
+const chestLocations=[
+ [-20,-20],[-50,-15],[-85,-20],[-20,-75],
+ [20,-20],[50,-15],[85,-20],[20,-75],
+
+ [-20,20],[-50,15],[-85,20],[-20,75],
+ [20,20],[50,15],[85,20],[20,75],
+
+ [-150,-50],[-180,-75],[-210,-110],
+ [150,-50],[180,-75],[210,-110],
+
+ [-150,150],[-180,180],[-220,210],
+ [150,150],[180,180],[220,210],
+
+ [-270,-210],[-240,-240],
+ [270,-210],[240,-240],
+
+ [-270,210],[270,210],
+ [-110,-250],[110,250],
+
+ [-350,-100],[350,100],
+ [-350,100],[350,-100]
+];
+
+chestLocations.forEach(x=>chest(...x));
+
+/* =========================================================
+   NPC
+========================================================= */
+
+function npc(name,x,z,color){
+
+ const g=new THREE.Group();
+
+ const skinMat=new THREE.MeshStandardMaterial({color:0xb98568,roughness:.8});
+ const clothMat=new THREE.MeshStandardMaterial({color,roughness:.85});
+ const darkMat=new THREE.MeshStandardMaterial({color:0x211b1c,roughness:.95});
+
+ const body=new THREE.Mesh(
+   new THREE.CapsuleGeometry(.52,.9,6,10),
+   clothMat
+ );
+
+ body.position.y=1.45;
+ body.castShadow=true;
+
+ g.add(body);
+
+ const neck=new THREE.Mesh(new THREE.CylinderGeometry(.18,.2,.25,8),skinMat);
+ neck.position.y=2.1;
+ g.add(neck);
+
+ const head=new THREE.Mesh(
+   new THREE.SphereGeometry(.43,16,12),skinMat
+ );
+
+ head.position.y=2.48;
+ head.scale.set(.92,1.08,.92);
+ head.castShadow=true;
+ g.add(head);
+
+ const hair=new THREE.Mesh(new THREE.SphereGeometry(.45,12,8),darkMat);
+ hair.position.set(0,2.66,.04);
+ hair.scale.set(.98,.45,.98);
+ g.add(hair);
+
+ const eyeMat=new THREE.MeshStandardMaterial({color:0x11151a,roughness:.4});
+ for(const side of [-1,1]){
+   const eye=new THREE.Mesh(new THREE.SphereGeometry(.045,8,8),eyeMat);
+   eye.position.set(side*.15,2.5,-.39);
+   g.add(eye);
+ }
+
+ const limbMat=new THREE.MeshStandardMaterial({color:0x2b2220});
+ for(const side of [-1,1]){
+   const arm=new THREE.Mesh(new THREE.CapsuleGeometry(.13,.62,5,8),clothMat);
+   arm.position.set(side*.65,1.48,0);
+   arm.rotation.z=side*.18;
+  g.add(arm);
+   const hand=new THREE.Mesh(new THREE.SphereGeometry(.15,8,8),skinMat);
+   hand.position.set(side*.77,.98,0);
+   g.add(hand);
+   const leg=new THREE.Mesh(new THREE.CapsuleGeometry(.16,.68,5,8),limbMat);
+   leg.position.set(side*.23,.48,0);
+   g.add(leg);
+   const boot=new THREE.Mesh(new THREE.BoxGeometry(.3,.2,.48),darkMat);
+   boot.position.set(side*.23,.08,-.1);
+   g.add(boot);
+ }
+
+ g.position.set(x,0,z);
+
+ world.add(g);
+
+ npcs.push({
+  name,
+  mesh:g
+ });
+}
+
+function createRemoteAvatar(name){
+ const g=new THREE.Group();
+ const skinMat=new THREE.MeshStandardMaterial({color:0xd39a78,roughness:.8});
+ const suitMat=new THREE.MeshStandardMaterial({color:0x3f9f9b,roughness:.7});
+ const darkMat=new THREE.MeshStandardMaterial({color:0x152326,roughness:.8});
+ const body=new THREE.Mesh(new THREE.CapsuleGeometry(.5,.95,6,10),suitMat);
+ body.position.y=1.42;
+ body.castShadow=true;
+ g.add(body);
+ const neck=new THREE.Mesh(new THREE.CylinderGeometry(.18,.2,.25,8),skinMat);
+ neck.position.y=2.08;
+ g.add(neck);
+ const head=new THREE.Mesh(new THREE.SphereGeometry(.42,16,12),skinMat);
+ head.position.y=2.45;
+ head.scale.set(.92,1.08,.92);
+ head.castShadow=true;
+ g.add(head);
+ const helmet=new THREE.Mesh(new THREE.SphereGeometry(.46,12,8),darkMat);
+ helmet.position.set(0,2.67,.02);
+ helmet.scale.set(1,.45,1);
+ g.add(helmet);
+ const visor=new THREE.Mesh(new THREE.BoxGeometry(.62,.16,.14),new THREE.MeshStandardMaterial({color:0xb9f4ed,emissive:0x278e86,emissiveIntensity:1.5,metalness:.35}));
+ visor.position.set(0,2.48,-.35);
+ g.add(visor);
+ for(const side of [-1,1]){
+  const arm=new THREE.Mesh(new THREE.CapsuleGeometry(.14,.65,5,8),suitMat);
+  arm.position.set(side*.64,1.45,0);
+  arm.rotation.z=side*.18;
+  g.add(arm);
+  const hand=new THREE.Mesh(new THREE.SphereGeometry(.15,8,8),skinMat);
+  hand.position.set(side*.76,.96,0);
+  g.add(hand);
+  const leg=new THREE.Mesh(new THREE.CapsuleGeometry(.16,.7,5,8),darkMat);
+  leg.position.set(side*.23,.46,0);
+  g.add(leg);
+  const boot=new THREE.Mesh(new THREE.BoxGeometry(.3,.2,.48),darkMat);
+  boot.position.set(side*.23,.08,-.1);
+  g.add(boot);
+ }
+ const labelCanvas=document.createElement("canvas");
+ labelCanvas.width=256;
+ labelCanvas.height=48;
+ const labelContext=labelCanvas.getContext("2d");
+ labelContext.font="bold 24px Georgia";
+ labelContext.textAlign="center";
+ labelContext.fillStyle="#9ff5e9";
+ labelContext.shadowColor="#000";
+ labelContext.shadowBlur=5;
+ labelContext.fillText(name,128,30);
+ const labelTexture=new THREE.CanvasTexture(labelCanvas);
+ const label=new THREE.Sprite(new THREE.SpriteMaterial({map:labelTexture,transparent:true,depthTest:false}));
+ label.scale.set(2.8,.52,1);
+ label.position.y=3.25;
+ g.add(label);
+ g.userData.name=name;
+ world.add(g);
+ return g;
+}
+
+function receiveNetworkMessage(data){
+ if(!data||data.id===playerId)return;
+ if(data.type==="leave"){
+   const old=remotePlayers.get(data.id);
+   if(old){world.remove(old.mesh);remotePlayers.delete(data.id)}
+ }else if(data.type==="state"){
+   let remote=remotePlayers.get(data.id);
+   if(!remote){remote={mesh:createRemoteAvatar(data.name||"Hunter"),name:data.name||"Hunter"};remotePlayers.set(data.id,remote)}
+   remote.mesh.position.set(data.x,0,data.z);
+   remote.mesh.rotation.y=data.yaw||0;
+ }
+ document.getElementById("playersOnline").textContent="Spelers: "+(remotePlayers.size+1);
+}
+
+function addConnection(connection){
+ connections.set(connection.peer,connection);
+ connection.on("data",receiveNetworkMessage);
+ connection.on("close",()=>{
+   const old=remotePlayers.get(connection.peer);
+   if(old){world.remove(old.mesh);remotePlayers.delete(connection.peer)}
+   connections.delete(connection.peer);
+ });
+ connection.on("error",()=>document.getElementById("roomStatus").textContent="Verbinding mislukt · controleer de room-code");
+}
+
+function localPlayerState(){
+ return {type:"state",id:playerId,name:playerName,x:camera.position.x,z:camera.position.z,yaw};
+}
+
+function openPeer(mode){
+ playerName=document.getElementById("playerName").value.trim()||"Hunter";
+ roomCode=document.getElementById("roomCode").value.trim().toUpperCase().replace(/[^A-Z0-9-]/g,"")||"VILLAGE";
+ connections.clear();
+ peer?.destroy();
+ if(typeof Peer==="undefined"){
+   document.getElementById("roomStatus").textContent="WebRTC kon niet laden · controleer je internetverbinding";
+   return;
+ }
+ peer=mode==="host"?new Peer(roomCode):new Peer();
+ peer.on("open",id=>{
+   if(mode==="join"){
+    const connection=peer.connect(roomCode,{reliable:true});
+    connection.on("open",()=>{addConnection(connection);connection.send(localPlayerState())});
+   }
+   document.getElementById("roomStatus").textContent=mode==="host"?"Host actief · room "+roomCode:"Verbonden met room "+roomCode;
+ });
+ peer.on("connection",connection=>{
+   connection.on("open",()=>{addConnection(connection);connection.send(localPlayerState())});
+ });
+ peer.on("error",error=>{
+   document.getElementById("roomStatus").textContent=error.type==="unavailable-id"?"Room bestaat al · kies JOINEN":"WebRTC-fout · "+error.type;
+ });
+}
+
+function broadcastPlayer(dt){
+ if(!connections.size)return;
+ networkTimer+=dt;
+ if(networkTimer<.08)return;
+ networkTimer=0;
+ const state=localPlayerState();
+ for(const connection of connections.values())
+   if(connection.open)connection.send(state);
+}
+
+document.getElementById("hostButton").onclick=()=>openPeer("host");
+document.getElementById("joinButton").onclick=()=>openPeer("join");
+addEventListener("beforeunload",()=>{
+ for(const connection of connections.values())connection.send({type:"leave",id:playerId});
+ peer?.destroy();
+});
+
+npc("Elder",8,-5,0x4868a8);
+npc("Merchant",-8,-5,0xa8783d);
+npc("Guardian",0,8,0x6554a8);
+
+/* =========================================================
+   ZONES
+========================================================= */
+
+function zone(name,x,z){
+
+ const g=new THREE.Group();
+
+ const pillar=new THREE.Mesh(
+  new THREE.CylinderGeometry(.5,.7,7,6),
+  stoneMat
+ );
+
+ pillar.position.y=3.5;
+ g.add(pillar);
+
+ const orb=new THREE.Mesh(
+  new THREE.IcosahedronGeometry(1.3,2),
+  new THREE.MeshStandardMaterial({
+   color:0x9e5cff,
+   emissive:0x9e5cff,
+   emissiveIntensity:2
+  })
+ );
+
+ orb.position.y=8;
+ g.add(orb);
+
+ g.position.set(x,0,z);
+
+ world.add(g);
+
+ zones.push({name,x,z});
+}
+
+zone("CENTRAL VILLAGE",0,0);
+zone("DARK FOREST",-260,-100);
+zone("ANCIENT RUINS",260,220);
+zone("FROZEN WASTES",-260,220);
+zone("THE VOID",260,-220);
+
+/* =========================================================
+   VIEW MODEL
+========================================================= */
+
+const viewModel=new THREE.Group();
+
+camera.add(viewModel);
+
+viewModel.position.set(.48,-.42,-.82);
+
+function energyMaterial(color){
+
+ return new THREE.MeshStandardMaterial({
+  color,
+  emissive:color,
+  emissiveIntensity:2.5,
+  metalness:.3,
+  roughness:.25
+ });
+}
+
+function rebuildWeapon(){
+
+ while(viewModel.children.length)
+  viewModel.remove(viewModel.children[0]);
+
+ const color=abilities[selected].color;
+
+ const dark=new THREE.MeshStandardMaterial({
+  color:0x131923,
+  metalness:.8,
+  roughness:.25
+ });
+
+ if(selected===0){
+
+  const handle=cubeLocal(
+   0,0,0,.25,.8,.3,dark
+  );
+
+  const core=new THREE.Mesh(
+   new THREE.SphereGeometry(.27,16,16),
+   energyMaterial(color)
+  );
+
+  core.position.set(0,.45,-.05);
+  viewModel.add(core);
+
+ }else if(selected===1){
+
+  const base=new THREE.Mesh(
+   new THREE.CylinderGeometry(.25,.35,1,8),
+   dark
+  );
+
+  base.rotation.z=-.7;
+  viewModel.add(base);
+
+  const crystal=new THREE.Mesh(
+   new THREE.OctahedronGeometry(.35,1),
+   energyMaterial(color)
+  );
+
+  crystal.position.set(0,.45,-.15);
+  crystal.scale.y=1.7;
+
+  viewModel.add(crystal);
+
+ }else if(selected===2){
+
+  const staff=new THREE.Mesh(
+   new THREE.CylinderGeometry(.1,.14,1.6,8),
+   dark
+  );
+
+  staff.rotation.z=-.2;
+  viewModel.add(staff);
+
+  const crystal=new THREE.Mesh(
+   new THREE.OctahedronGeometry(.35,1),
+   energyMaterial(color)
+  );
+
+  crystal.position.y=.75;
+  viewModel.add(crystal);
+
+ }else if(selected===3){
+
+  const handle=new THREE.Mesh(
+   new THREE.CylinderGeometry(.1,.16,.9,8),
+   dark
+  );
+
+  viewModel.add(handle);
+
+  for(let i=0;i<3;i++){
+
+   const ring=new THREE.Mesh(
+    new THREE.TorusGeometry(
+     .3+i*.1,
+     .04,
+     8,
+     32
+    ),
+    energyMaterial(color)
+   );
+
+   ring.rotation.x=Math.PI/2;
+   ring.position.y=.5+i*.08;
+
+   viewModel.add(ring);
+  }
+
+ }else if(selected===4){
+
+  const orb=new THREE.Mesh(
+   new THREE.SphereGeometry(.34,20,20),
+   energyMaterial(color)
+  );
+
+  orb.position.y=.35;
+  viewModel.add(orb);
+
+  for(let i=0;i<3;i++){
+
+   const ring=new THREE.Mesh(
+    new THREE.TorusGeometry(
+     .48+i*.1,
+     .03,
+     8,
+     32
+    ),
+    energyMaterial(color)
+   );
+
+   ring.rotation.set(i*.8,i*.4,0);
+   ring.position.y=.35;
+
+   viewModel.add(ring);
+  }
+
+ }else{
+
+  for(let i=0;i<3;i++){
+
+   const blade=new THREE.Mesh(
+    new THREE.OctahedronGeometry(.2),
+    energyMaterial(color)
+   );
+
+   blade.scale.set(.45,2.2,.2);
+   blade.position.set(
+    (i-1)*.32,
+    .2,
+    0
+   );
+
+   viewModel.add(blade);
+  }
+ }
+}
+
+function cubeLocal(x,y,z,sx,sy,sz,mat){
+
+ const m=new THREE.Mesh(
+  new THREE.BoxGeometry(sx,sy,sz),
+  mat
+ );
+
+ m.position.set(x,y,z);
+ viewModel.add(m);
+
+ return m;
+}
+
+/* =========================================================
+   PROJECTILES
+========================================================= */
+
+function fireProjectile(dir,index){
+
+ const a=abilities[index];
+
+ const g=new THREE.Group();
+
+ const core=new THREE.Mesh(
+  new THREE.SphereGeometry(
+   index===4?.55:index===1?.38:.18,
+   16,
+   16
+  ),
+  energyMaterial(a.color)
+ );
+
+ g.add(core);
+
+ const ring=new THREE.Mesh(
+  new THREE.TorusGeometry(.3,.035,8,24),
+  energyMaterial(a.color)
+ );
+
+ ring.rotation.x=Math.PI/2;
+ g.add(ring);
+
+ const start=camera.position.clone()
+  .add(dir.clone().multiplyScalar(1));
+
+ g.position.copy(start);
+
+ world.add(g);
+
+ projectiles.push({
+  mesh:g,
+  dir:dir.clone(),
+  speed:a.speed,
+  damage:a.damage,
+  life:4,
+  index
+ });
+}
+
+function shoot(){
+
+ if(!running)return;
+
+ const now=performance.now()/1000;
+ const a=abilities[selected];
+
+ if(now-lastShot<a.cooldown)return;
+ if(energy<a.cost)return;
+
+ energy-=a.cost;
+ lastShot=now;
+
+ const dir=new THREE.Vector3();
+
+ camera.getWorldDirection(dir);
+
+ if(selected===5){
+
+  for(let i=-2;i<=2;i++){
+
+   const d=dir.clone();
+
+   d.x+=i*.055;
+   d.y+=i*.025;
+
+   d.normalize();
+
+   fireProjectile(d,selected);
+  }
+
+ }else{
+
+  fireProjectile(dir,selected);
+ }
+
+ viewModel.position.z=-.7;
+}
+
+/* =========================================================
+   ENEMIES
+========================================================= */
+
+const enemyTypes={
+ shadow:{
+  hp:100,
+  speed:2.5,
+  reward:10,
+  size:1,
+  color:0x5e4a9e
+ },
+
+ runner:{
+  hp:70,
+  speed:4.5,
+  reward:15,
+  size:.75,
+  color:0x42a9bb
+ },
+
+ brute:{
+  hp:330,
+  speed:1.2,
+  reward:35,
+  size:1.6,
+  color:0x934b43
+ },
+
+ elite:{
+  hp:650,
+  speed:1.8,
+  reward:80,
+  size:2,
+  color:0xb72cff
+ }
+};
+
+function spawnEnemy(type,x,z){
+
+ const d=enemyTypes[type];
+
+ const g=new THREE.Group();
+
+ const body=new THREE.Mesh(
+   new THREE.SphereGeometry(1.25*d.size,14,10),
+  new THREE.MeshStandardMaterial({
+   color:d.color,
+   emissive:d.color,
+   emissiveIntensity:.5
+  })
+ );
+
+ body.position.y=1.55*d.size;
+ body.scale.set(1,1.18,.82);
+ body.castShadow=true;
+
+ g.add(body);
+
+ const shoulderMat=new THREE.MeshStandardMaterial({color:d.color,emissive:d.color,emissiveIntensity:.35,roughness:.9});
+ const limbMat=new THREE.MeshStandardMaterial({color:0x281c35,roughness:.9});
+ for(const side of [-1,1]){
+  const shoulder=new THREE.Mesh(new THREE.SphereGeometry(.42*d.size,10,8),shoulderMat);
+  shoulder.position.set(side*.92*d.size,1.95*d.size,0);
+  g.add(shoulder);
+  const arm=new THREE.Mesh(new THREE.CapsuleGeometry(.18*d.size,.72*d.size,5,8),limbMat);
+  arm.position.set(side*1.08*d.size,1.28*d.size,-.05*d.size);
+  arm.rotation.z=side*.24;
+  arm.castShadow=true;
+  g.add(arm);
+  const leg=new THREE.Mesh(new THREE.CapsuleGeometry(.22*d.size,.65*d.size,5,8),limbMat);
+  leg.position.set(side*.42*d.size,.55*d.size,.05*d.size);
+  leg.rotation.z=side*.08;
+  g.add(leg);
+ }
+
+ const jaw=new THREE.Mesh(new THREE.SphereGeometry(.58*d.size,10,6),new THREE.MeshStandardMaterial({color:0x38253f,roughness:1}));
+ jaw.position.set(0,1.1*d.size,-.7*d.size);
+ jaw.scale.set(1,.55,.7);
+ g.add(jaw);
+
+ const toothMat=new THREE.MeshStandardMaterial({color:0xf0dfb1,roughness:.6});
+ for(const side of [-1,1]){
+  const tooth=new THREE.Mesh(new THREE.ConeGeometry(.1*d.size,.32*d.size,6),toothMat);
+  tooth.position.set(side*.25*d.size,1.05*d.size,-1.12*d.size);
+  tooth.rotation.x=Math.PI;
+  g.add(tooth);
+ }
+
+ for(const side of [-1,1]){
+
+  const eye=new THREE.Mesh(
+   new THREE.SphereGeometry(
+    .12*d.size,
+    8,
+    8
+   ),
+   new THREE.MeshStandardMaterial({
+    color:0xff3344,
+    emissive:0xff0000,
+    emissiveIntensity:4
+   })
+  );
+
+  eye.position.set(
+   side*.35*d.size,
+   1.7*d.size,
+   -1.1*d.size
+  );
+
+  g.add(eye);
+ }
+
+ const hornMat=new THREE.MeshStandardMaterial({color:0x24162e,roughness:.8});
+ for(const side of [-1,1]){
+  const horn=new THREE.Mesh(new THREE.ConeGeometry(.22*d.size,.85*d.size,7),hornMat);
+  horn.position.set(side*.6*d.size,2.45*d.size,0);
+  horn.rotation.z=side*.45;
+  horn.castShadow=true;
+  g.add(horn);
+ }
+
+ if(type!=="runner"){
+  const clawMat=new THREE.MeshStandardMaterial({color:0x34213e,roughness:.9});
+  for(const side of [-1,1]){
+   const claw=new THREE.Mesh(new THREE.CylinderGeometry(.12*d.size,.2*d.size,1.25*d.size,6),clawMat);
+   claw.position.set(side*1.05*d.size,1.05*d.size,-.2*d.size);
+   claw.rotation.z=side*.55;
+   g.add(claw);
+  }
+ }
+
+ g.position.set(x,0,z);
+
+ world.add(g);
+
+ enemies.push({
+  mesh:g,
+  type,
+  hp:d.hp,
+  maxHp:d.hp,
+  speed:d.speed,
+  reward:d.reward,
+  size:d.size,
+  hit:0
+ });
+}
+
+function spawnWave(){
+
+ const amount=5+wave*2;
+
+ for(let i=0;i<amount;i++){
+
+  const a=rand()*Math.PI*2;
+  const dist=90+rand()*100;
+
+  const x=camera.position.x+Math.cos(a)*dist;
+  const z=camera.position.z+Math.sin(a)*dist;
+
+  let type="shadow";
+
+  const r=rand();
+
+  if(wave>2 && r<.25)
+   type="runner";
+
+  if(wave>4 && r<.12)
+   type="brute";
+
+  spawnEnemy(type,x,z);
+ }
+
+ if(wave%5===0)
+  spawnBoss();
+}
+
+/* =========================================================
+   BOSS
+========================================================= */
+
+let boss=null;
+
+function spawnBoss(){
+
+ const angle=rand()*Math.PI*2;
+
+ const x=camera.position.x+Math.cos(angle)*130;
+ const z=camera.position.z+Math.sin(angle)*130;
+
+ const g=new THREE.Group();
+
+ const body=new THREE.Mesh(
+  new THREE.IcosahedronGeometry(6,2),
+  new THREE.MeshStandardMaterial({
+   color:0x7d24bb,
+   emissive:0x54107c,
+   emissiveIntensity:1.5,
+   roughness:.4
+  })
+ );
+
+ body.position.y=6;
+ body.castShadow=true;
+
+ g.add(body);
+
+ const ring=new THREE.Mesh(
+  new THREE.TorusGeometry(7,.2,12,50),
+  new THREE.MeshStandardMaterial({
+   color:0xe75cff,
+   emissive:0xe75cff,
+   emissiveIntensity:3
+  })
+ );
+
+ ring.rotation.x=Math.PI/2;
+ ring.position.y=6;
+
+ g.add(ring);
+
+ g.position.set(x,0,z);
+
+ world.add(g);
+
+ boss={
+  mesh:g,
+  hp:3000+wave*300,
+  maxHp:3000+wave*300,
+  speed:1.7
+ };
+
+ document.getElementById("bossbar").style.display="block";
+
+ message("⚠ BOSS VERSCHIJNT ⚠");
+}
+
+/* =========================================================
+   PARTICLES
+========================================================= */
+
+function particle(pos,vel,color){
+
+ const p=new THREE.Mesh(
+  new THREE.SphereGeometry(.06,6,6),
+  energyMaterial(color)
+ );
+
+ p.position.copy(pos);
+
+ world.add(p);
+
+ particles.push({
+  mesh:p,
+  vel:vel.clone(),
+  life:.5+rand()
+ });
+}
+
+/* =========================================================
+   INPUT
+========================================================= */
+
+addEventListener("keydown",e=>{
+
+ keys[e.code]=true;
+
+ if(e.code.startsWith("Digit")){
+
+  const n=Number(e.code.slice(5))-1;
+
+  if(n>=0 && n<abilities.length){
+
+   selected=n;
+   rebuildWeapon();
+  }
+ }
+
+ if(e.code==="KeyE")
+  interact();
+
+ if(e.code==="KeyB")
+  openShop();
+
+ if(e.code==="KeyI")
+  openInventory();
+
+ if(e.code==="KeyR")
+  energy=Math.min(100,energy+45);
+});
+
+addEventListener("keyup",e=>{
+ keys[e.code]=false;
+});
+
+addEventListener("mousedown",e=>{
+
+ if(e.button===0){
+  shooting=true;
+  shoot();
+ }
+});
+
+addEventListener("mouseup",e=>{
+
+ if(e.button===0)
+  shooting=false;
+});
+
+document.addEventListener("mousemove",e=>{
+
+ if(!running)return;
+ if(document.pointerLockElement!==document.body)return;
+
+ yaw-=e.movementX*.0022;
+ pitch-=e.movementY*.0022;
+
+ pitch=Math.max(
+  -1.5,
+  Math.min(1.5,pitch)
+ );
+
+ camera.rotation.order="YXZ";
+
+ camera.rotation.y=yaw;
+ camera.rotation.x=pitch;
+});
+
+document.body.addEventListener("click",()=>{
+
+ if(running &&
+    document.pointerLockElement!==document.body){
+
+  document.body.requestPointerLock?.();
+ }
+});
+
+/* =========================================================
+   PLAYER
+========================================================= */
+
+function updatePlayer(dt){
+
+ const forward=new THREE.Vector3(
+  -Math.sin(yaw),
+  0,
+  -Math.cos(yaw)
+ );
+
+ const right=new THREE.Vector3(
+  Math.cos(yaw),
+  0,
+  -Math.sin(yaw)
+ );
+
+ const move=new THREE.Vector3();
+
+ if(keys.KeyW)move.add(forward);
+ if(keys.KeyS)move.sub(forward);
+ if(keys.KeyD)move.add(right);
+ if(keys.KeyA)move.sub(right);
+
+ if(move.lengthSq()>0)
+  move.normalize();
+
+ const sprint=
+  keys.ShiftLeft &&
+  move.lengthSq()>0 &&
+  stamina>1;
+
+ const speed=sprint?12:6.5;
+
+ if(sprint)
+  stamina=Math.max(
+   0,
+   stamina-dt*22
+  );
+ else
+  stamina=Math.min(
+   100,
+   stamina+dt*15
+  );
+
+ camera.position.addScaledVector(
+  move,
+  speed*dt
+ );
+
+ camera.position.x=
+  THREE.MathUtils.clamp(
+   camera.position.x,
+   -430,
+   430
+  );
+
+ camera.position.z=
+  THREE.MathUtils.clamp(
+   camera.position.z,
+   -430,
+   430
+  );
+
+ camera.position.y=1.7;
+
+ if(shooting)
+  shoot();
+
+ viewModel.position.z+=
+  (-.82-viewModel.position.z)*dt*18;
+}
+
+/* =========================================================
+   PROJECTILE UPDATE
+========================================================= */
+
+function updateProjectiles(dt){
+
+ for(let i=projectiles.length-1;i>=0;i--){
+
+  const p=projectiles[i];
+
+  p.mesh.position.addScaledVector(
+   p.dir,
+   p.speed*dt
+  );
+
+  p.life-=dt;
+
+  let remove=false;
+
+  for(const e of [...enemies]){
+
+   const target=
+    e.mesh.position.clone();
+
+   target.y+=1;
+
+   if(
+    p.mesh.position.distanceTo(target)
+    <
+    e.size*2+1
+   ){
+
+    damageEnemy(e,p.damage);
+    remove=true;
+    break;
+   }
+  }
+
+  if(
+   boss &&
+   p.mesh.position.distanceTo(
+    boss.mesh.position.clone().add(
+     new THREE.Vector3(0,6,0)
+    )
+   )<8
+  ){
+
+   boss.hp-=p.damage;
+   remove=true;
+
+   for(let j=0;j<5;j++){
+
+    particle(
+     p.mesh.position.clone(),
+     new THREE.Vector3(
+      rand()-.5,
+      rand(),
+      rand()-.5
+     ).multiplyScalar(4),
+     abilities[p.index].color
+    );
+   }
+
+   if(boss.hp<=0)
+    killBoss();
+  }
+
+  if(p.life<=0)
+   remove=true;
+
+  if(remove){
+
+   world.remove(p.mesh);
+   projectiles.splice(i,1);
+  }
+ }
+}
+
+/* =========================================================
+   DAMAGE
+========================================================= */
+
+function damageEnemy(e,dmg){
+
+ e.hp-=dmg;
+ e.hit=.12;
+
+ const crosshair=document.getElementById("crosshair");
+ crosshair.classList.add("hit");
+ setTimeout(()=>crosshair.classList.remove("hit"),90);
+
+ if(e.hp<=0){
+
+  score+=e.reward;
+  coins+=Math.ceil(e.reward/2);
+
+  xp+=e.reward;
+
+  questKills++;
+
+  while(xp>=level*100){
+
+   xp-=level*100;
+   level++;
+   hp=100;
+   energy=100;
+
+   message("LEVEL UP! LEVEL "+level);
+  }
+
+  localStorage.setItem(
+   "sfCoins",
+   coins
+  );
+
+  for(let i=0;i<12;i++){
+
+   particle(
+    e.mesh.position.clone().add(
+     new THREE.Vector3(0,1,0)
+    ),
+    new THREE.Vector3(
+     rand()-.5,
+     rand(),
+     rand()-.5
+    ).multiplyScalar(5),
+    0xa755ff
+   );
+  }
+
+  world.remove(e.mesh);
+
+  enemies.splice(
+   enemies.indexOf(e),
+   1
+  );
+
+  if(questKills>=10)
+   questComplete=true;
+ }
+}
+
+function killBoss(){
+
+ score+=1000;
+ coins+=500;
+ xp+=500;
+
+ message("BOSS VERSLAGEN! +500 COINS");
+
+ localStorage.setItem(
+  "sfCoins",
+  coins
+ );
+
+ for(let i=0;i<70;i++){
+
+  particle(
+   boss.mesh.position.clone().add(
+    new THREE.Vector3(0,6,0)
+   ),
+   new THREE.Vector3(
+    rand()-.5,
+    rand(),
+    rand()-.5
+   ).multiplyScalar(10),
+   0xde55ff
+  );
+ }
+
+ world.remove(boss.mesh);
+ boss=null;
+
+ document.getElementById(
+  "bossbar"
+ ).style.display="none";
+}
+
+/* =========================================================
+   ENEMY UPDATE
+========================================================= */
+
+function updateEnemies(dt){
+
+ for(const e of [...enemies]){
+
+  const target=
+   camera.position.clone();
+
+  target.y=0;
+
+  const pos=
+   e.mesh.position.clone();
+
+  pos.y=0;
+
+  const dir=target.sub(pos);
+
+  const distance=dir.length();
+
+  if(distance>2.3){
+
+   dir.normalize();
+
+   e.mesh.position.addScaledVector(
+    dir,
+    e.speed*dt
+   );
+
+   e.mesh.lookAt(
+    camera.position.x,
+    e.mesh.position.y+1,
+    camera.position.z
+   );
+
+  }else{
+
+   hp-=dt*(
+    e.type==="brute"?15:
+    e.type==="elite"?20:
+    9
+   );
+
+   if(hp<=0)
+    endGame();
+  }
+
+  if(e.hit>0){
+
+   e.hit-=dt;
+
+   e.mesh.scale.setScalar(
+    e.hit>.05?1.08:1
+   );
+  }
+ }
+
+ if(boss){
+
+  const target=
+   camera.position.clone();
+
+  target.y=0;
+
+  const pos=
+   boss.mesh.position.clone();
+
+  pos.y=0;
+
+  const dir=target.sub(pos);
+
+  if(dir.length()>9){
+
+   dir.normalize();
+
+   boss.mesh.position.addScaledVector(
+    dir,
+    boss.speed*dt
+   );
+  }else{
+
+   hp-=dt*18;
+
+   if(hp<=0)
+    endGame();
+  }
+
+  boss.mesh.rotation.y+=dt;
+
+  document.getElementById(
+   "bossFill"
+  ).style.width=
+   Math.max(
+    0,
+    boss.hp/boss.maxHp*100
+   )+"%";
+ }
+}
+
+/* =========================================================
+   CHESTS
+========================================================= */
+
+function nearestChest(){
+
+ let best=null;
+ let distance=5;
+
+ for(const c of chests){
+
+  if(c.opened)continue;
+
+  const d=camera.position.distanceTo(
+   c.mesh.position
+  );
+
+  if(d<distance){
+
+   distance=d;
+   best=c;
+  }
+ }
+
+ return best;
+}
+
+function openChest(){
+
+ const c=nearestChest();
+
+ if(!c)return;
+
+ c.opened=true;
+
+ c.mesh.rotation.x=-.4;
+
+ const reward=Math.floor(rand()*4);
+
+ if(reward===0){
+
+  const amount=50+Math.floor(rand()*150);
+
+  coins+=amount;
+
+  message("+"+amount+" COINS");
+
+ }else if(reward===1){
+
+  inventory.crystals++;
+
+  message("+1 ANCIENT CRYSTAL");
+
+ }else if(reward===2){
+
+  inventory.relics++;
+
+  message("+1 RELIC");
+
+ }else{
+
+  hp=Math.min(
+   100,
+   hp+40
+  );
+
+  energy=Math.min(
+   100,
+   energy+50
+  );
+
+  message("+HP +ENERGY");
+ }
+
+ localStorage.setItem(
+  "sfCoins",
+  coins
+ );
+
+ for(let i=0;i<18;i++){
+
+  particle(
+   c.mesh.position.clone().add(
+    new THREE.Vector3(0,2,0)
+   ),
+   new THREE.Vector3(
+    rand()-.5,
+    rand(),
+    rand()-.5
+   ).multiplyScalar(4),
+   0xffd84d
+  );
+ }
+}
+
+/* =========================================================
+   INTERACTION
+========================================================= */
+
+let messageTimer=0;
+
+function message(text){
+ const messageBox=document.getElementById("message");
+ messageBox.textContent=text;
+ messageBox.style.opacity="1";
+ messageTimer=2.5;
+}
+
+function interact(){
+
+ const c=nearestChest();
+
+ if(c){
+  openChest();
+  return;
+ }
+
+ let closest=null;
+ let distance=4;
+
+ for(const n of npcs){
+
+  const d=camera.position.distanceTo(
+   n.mesh.position
+  );
+
+  if(d<distance){
+
+   distance=d;
+   closest=n;
+  }
+ }
+
+ if(closest){
+
+  if(closest.name==="Elder"){
+
+   if(questComplete){
+
+    coins+=300;
+    questComplete=false;
+    questKills=0;
+
+    message("QUEST VOLTOOID! +300 COINS");
+
+   }else{
+
+    message(
+     "Elder: Versla 10 monsters!"
+    );
+   }
+  }
+
+  if(closest.name==="Merchant")
+   openShop();
+
+  if(closest.name==="Guardian")
+   message(
+    "Guardian: De ruïnes verbergen een geheim..."
+   );
+ }
+}
+
+function nearestNpc(){
+ let closest=null;
+ let distance=4;
+ for(const n of npcs){
+  const current=camera.position.distanceTo(n.mesh.position);
+  if(current<distance){distance=current;closest=n}
+ }
+ return closest;
+}
+
+/* =========================================================
+   SHOP
+========================================================= */
+
+const shopItems=[
+ {
+  name:"Health Potion",
+  price:50,
+  action(){
+   hp=Math.min(100,hp+50);
+  }
+ },
+ {
+  name:"Energy Crystal",
+  price:75,
+  action(){
+   energy=Math.min(100,energy+60);
+  }
+ },
+ {
+  name:"Ancient Relic",
+  price:250,
+  action(){
+   inventory.relics++;
+  }
+ },
+ {
+  name:"Crystal Skin",
+  price:500,
+  action(){
+   message("CRYSTAL SKIN GEKOCHT!");
+  }
+ },
+ {
+  name:"Void Core",
+  price:750,
+  action(){
+   message("VOID CORE GEKOCHT!");
+  }
+ },
+ {
+  name:"Legendary Cache",
+  price:1000,
+  action(){
+   score+=1000;
+   xp+=300;
+  }
+ }
+];
+
+function openShop(){
+
+ if(!running)return;
+
+ document.exitPointerLock?.();
+
+ const shop=document.getElementById("shop");
+
+ shop.style.display="flex";
+
+ document.getElementById(
+  "shopCoins"
+ ).textContent=coins;
+
+ const grid=document.getElementById(
+  "shopGrid"
+ );
+
+ grid.innerHTML="";
+
+ shopItems.forEach(item=>{
+
+  const d=document.createElement("div");
+
+  d.className="shopitem";
+
+  d.innerHTML=
+   `<b>${item.name}</b><br>
+    <small>${item.price} coins</small>`;
+
+  d.onclick=()=>{
+
+   if(coins>=item.price){
+
+    coins-=item.price;
+
+    item.action();
+
+    localStorage.setItem(
+     "sfCoins",
+     coins
+    );
+
+    openShop();
+
+   }else{
+
+    message("Niet genoeg coins!");
+   }
+  };
+
+  grid.appendChild(d);
+ });
+}
+
+document.getElementById(
+ "closeShop"
+).onclick=()=>{
+
+ document.getElementById(
+  "shop"
+ ).style.display="none";
+
+ document.body.requestPointerLock?.();
+};
+
+/* =========================================================
+   INVENTORY
+========================================================= */
+
+function openInventory(){
+
+ if(!running)return;
+
+ document.exitPointerLock?.();
+
+ document.getElementById(
+  "inventory"
+ ).style.display="flex";
+
+ document.getElementById(
+  "invLevel"
+ ).textContent=level;
+
+ document.getElementById(
+  "invXP"
+ ).textContent=xp;
+
+ const box=document.getElementById(
+  "inventoryItems"
+ );
+
+ box.innerHTML="";
+
+ [
+  ["Potions",inventory.potions],
+  ["Crystals",inventory.crystals],
+  ["Relics",inventory.relics],
+  ["Coins",coins]
+ ].forEach(item=>{
+
+  const d=document.createElement("div");
+
+  d.className="inv";
+
+  d.innerHTML=
+   `<b>${item[0]}</b><br>${item[1]}`;
+
+  box.appendChild(d);
+ });
+}
+
+document.getElementById(
+ "closeInventory"
+).onclick=()=>{
+
+ document.getElementById(
+  "inventory"
+ ).style.display="none";
+
+ document.body.requestPointerLock?.();
+};
+
+/* =========================================================
+   ZONE DETECTION
+========================================================= */
+
+function updateZone(){
+
+ let closest=null;
+ let distance=Infinity;
+
+ for(const z of zones){
+
+  const d=Math.hypot(
+   camera.position.x-z.x,
+   camera.position.z-z.z
+  );
+
+  if(d<distance){
+
+   distance=d;
+   closest=z;
+  }
+ }
+
+ if(closest)
+  document.getElementById(
+   "zone"
+  ).textContent=closest.name;
+}
+
+/* =========================================================
+   MINIMAP
+========================================================= */
+
+const map=document.getElementById("minimap");
+const ctx=map.getContext("2d");
+
+function updateMap(){
+
+ ctx.clearRect(
+  0,0,
+  map.width,
+  map.height
+ );
+
+ ctx.fillStyle="#0b1018";
+
+ ctx.fillRect(
+  0,0,
+  map.width,
+  map.height
+ );
+
+ const scale=.19;
+ const cx=90;
+ const cy=90;
+
+ /* roads */
+
+ ctx.strokeStyle="#555";
+ ctx.lineWidth=3;
+
+ ctx.beginPath();
+ ctx.moveTo(cx,0);
+ ctx.lineTo(cx,180);
+ ctx.stroke();
+
+ ctx.beginPath();
+ ctx.moveTo(0,cy);
+ ctx.lineTo(180,cy);
+ ctx.stroke();
+
+ /* chests */
+
+ ctx.fillStyle="#e8b63d";
+
+ for(const c of chests){
+
+  if(c.opened)continue;
+
+  const x=
+   cx+(c.mesh.position.x-camera.position.x)*scale;
+
+  const y=
+   cy+(c.mesh.position.z-camera.position.z)*scale;
+
+  if(x>0&&x<180&&y>0&&y<180)
+   ctx.fillRect(x-2,y-2,4,4);
+ }
+
+ /* enemies */
+
+ ctx.fillStyle="#e63946";
+
+ for(const e of enemies){
+
+  const x=
+   cx+(e.mesh.position.x-camera.position.x)*scale;
+
+  const y=
+   cy+(e.mesh.position.z-camera.position.z)*scale;
+
+  if(x>0&&x<180&&y>0&&y<180)
+   ctx.fillRect(x-2,y-2,4,4);
+ }
+
+ /* other players */
+
+ ctx.fillStyle="#58d9d0";
+
+ for(const remote of remotePlayers.values()){
+  const x=cx+(remote.mesh.position.x-camera.position.x)*scale;
+  const y=cy+(remote.mesh.position.z-camera.position.z)*scale;
+  if(x>0&&x<180&&y>0&&y<180){
+   ctx.beginPath();
+   ctx.arc(x,y,4,0,Math.PI*2);
+   ctx.fill();
+  }
+ }
+
+ /* player */
+
+ ctx.fillStyle="#fff";
+
+ ctx.beginPath();
+ ctx.arc(cx,cy,4,0,Math.PI*2);
+ ctx.fill();
+
+ /* direction */
+
+ ctx.strokeStyle="#fff";
+ ctx.beginPath();
+ ctx.moveTo(cx,cy);
+
+ ctx.lineTo(
+  cx-Math.sin(yaw)*14,
+  cy-Math.cos(yaw)*14
+ );
+
+ ctx.stroke();
+}
+
+/* =========================================================
+   UI
+========================================================= */
+
+function updateUI(){
+
+ document.getElementById("hp").style.width=
+  Math.max(0,hp)+"%";
+
+ document.getElementById("energy").style.width=
+  Math.max(0,energy)+"%";
+
+ document.getElementById("stamina").style.width=
+  Math.max(0,stamina)+"%";
+
+ document.getElementById("stats").textContent=
+  `Level ${level} · XP ${xp}/${level*100}
+   · Score ${score} · Coins ${coins}
+   · Wave ${wave}`;
+
+ document.getElementById(
+  "interaction"
+ ).textContent=
+   nearestChest()?"[E] KISTE OPENEN":
+   nearestNpc()?"[E] PRAAT MET "+nearestNpc().name:"";
+
+ document.getElementById(
+  "questText"
+ ).innerHTML=
+  questComplete
+   ?"✓ Ga terug naar de Elder"
+   :`Versla 10 monsters<br>
+     ${Math.min(questKills,10)}/10`;
+
+ const abilitiesBox=
+  document.getElementById("abilities");
+
+ abilitiesBox.innerHTML="";
+
+ abilities.forEach((a,i)=>{
+
+  const d=document.createElement("div");
+
+  d.className=
+   "ability"+
+   (i===selected?" active":"");
+
+  d.innerHTML=`
+   <div class="key">${i+1}</div>
+   <div class="name">${a.name}</div>
+   <div class="cost">${a.cost} ENERGY</div>
+  `;
+
+  abilitiesBox.appendChild(d);
+ });
+
+ updateZone();
+ updateMap();
+}
+
+/* =========================================================
+   WEATHER / DAY NIGHT
+========================================================= */
+
+function updateEnvironment(dt){
+
+ dayTime+=dt*.015;
+
+ const t=
+  (Math.sin(dayTime)+1)/2;
+
+ sun.intensity=
+  .7+t*1.7;
+
+ hemi.intensity=
+  .7+t;
+
+ const sky=new THREE.Color();
+
+ sky.setHSL(
+  .61,
+  .35,
+  .035+t*.045
+ );
+
+ scene.background=sky;
+ scene.fog.color=sky;
+
+ for(const firefly of fireflies){
+  const data=firefly.userData;
+  data.phase+=dt*data.speed;
+  firefly.position.y=data.baseY+Math.sin(data.phase)*.45;
+  firefly.material.opacity=.45+.35*(Math.sin(data.phase*1.7)+1)/2;
+  firefly.material.transparent=true;
+ }
+}
+
+/* =========================================================
+   PARTICLE UPDATE
+========================================================= */
+
+function updateParticles(dt){
+
+ for(let i=particles.length-1;i>=0;i--){
+
+  const p=particles[i];
+
+  p.mesh.position.addScaledVector(
+   p.vel,
+   dt
+  );
+
+  p.vel.y-=8*dt;
+
+  p.life-=dt;
+
+  p.mesh.scale.setScalar(
+   Math.max(0,p.life)
+  );
+
+  if(p.life<=0){
+
+   world.remove(p.mesh);
+
+   particles.splice(i,1);
+  }
+ }
+}
+
+/* =========================================================
+   GAME OVER
+========================================================= */
+
+function endGame(){
+
+ if(!running)return;
+
+ running=false;
+ shooting=false;
+
+ document.exitPointerLock?.();
+
+ document.getElementById(
+  "final"
+ ).textContent=
+  `Level ${level} · Score ${score} · Wave ${wave}`;
+
+ document.getElementById(
+  "gameover"
+ ).style.display="flex";
+}
+
+/* =========================================================
+   START
+========================================================= */
+
+document.getElementById(
+ "startButton"
+).onclick=()=>{
+
+ document.getElementById(
+  "start"
+ ).style.display="none";
+
+ running=true;
+
+ rebuildWeapon();
+
+ spawnWave();
+
+ document.body.requestPointerLock?.();
+};
+
+/* =========================================================
+   MAIN LOOP
+========================================================= */
+
+let waveTimer=0;
+
+function animate(){
+
+ requestAnimationFrame(animate);
+
+ const dt=Math.min(
+  clock.getDelta(),
+  .05
+ );
+
+ if(running){
+
+  updatePlayer(dt);
+   broadcastPlayer(dt);
+
+  updateProjectiles(dt);
+
+  updateEnemies(dt);
+
+  updateParticles(dt);
+
+  updateEnvironment(dt);
+
+  waveTimer+=dt;
+
+  if(
+   enemies.length===0 &&
+   !boss &&
+   waveTimer>3
+  ){
+
+   wave++;
+
+   waveTimer=0;
+
+   spawnWave();
+
+   message("WAVE "+wave);
+  }
+
+  updateUI();
+ }
+
+ renderer.render(
+  scene,
+  camera
+ );
+}
+
+animate();
+
+/* =========================================================
+   RESIZE
+========================================================= */
+
+addEventListener("resize",()=>{
+
+ camera.aspect=
+  innerWidth/innerHeight;
+
+ camera.updateProjectionMatrix();
+
+ renderer.setSize(
+  innerWidth,
+  innerHeight
+ );
+
+});
+
+</script>
+
+</body>
+</html>
